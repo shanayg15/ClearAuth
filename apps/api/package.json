@@ -12,6 +12,8 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1057.0",
+    "@aws-sdk/s3-request-presigner": "^3.1057.0",
     "@clearauth/supabase": "*",
     "@clearauth/types": "*",
     "@langchain/anthropic": "^1.4.0",

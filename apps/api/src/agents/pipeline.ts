@@ -11,6 +11,16 @@ import { runSubmissionChain } from "./chains/submission-chain";
 // every transition so connected dashboards animate live. Each step is wrapped so
 // a chain failure flips status to "error" and stops — runPipeline never throws.
 
+// Demo pacing: with DEMO_PACING=1, insert a short beat before each transition so
+// the live status animation is watchable. Off by default (zero delay in tests/CI).
+const PACE_MS = 600;
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function pace(): Promise<void> {
+  if (process.env.DEMO_PACING === "1") await sleep(PACE_MS);
+}
+
 async function setStatus(req: AuthRequest, status: AuthStatus): Promise<void> {
   req.status = status;
   await upsertAuthRequest(req);
@@ -23,6 +33,7 @@ async function runStep<T>(
   workingStatus: AuthStatus,
   run: () => Promise<AgentResult<T>>
 ): Promise<AgentResult<T>> {
+  await pace();
   await setStatus(req, workingStatus);
   const result = await run();
   req.auditTrail.push(result.auditEntry);
@@ -54,8 +65,10 @@ export async function runPipeline(req: AuthRequest): Promise<AuthRequest> {
     const criteriaData = criteria.data;
     req.criteria = criteriaData;
 
-    // 3. Form fill — assemble the payer PA packet
-    const formFill = await runStep(req, "filling_form", () => runFormFillChain(extractionData, criteriaData));
+    // 3. Form fill — assemble the payer PA packet (packet stored at packets/{id}.md)
+    const formFill = await runStep(req, "filling_form", () =>
+      runFormFillChain(extractionData, criteriaData, req.id)
+    );
     if (!formFill.success || !formFill.data) return fail(req, formFill.error ?? "Form fill failed");
     const formFillData = formFill.data;
     req.formFill = formFillData;
@@ -66,6 +79,7 @@ export async function runPipeline(req: AuthRequest): Promise<AuthRequest> {
     req.compliance = compliance.data;
 
     // Gate between review and submission
+    await pace();
     await setStatus(req, "ready_to_submit");
 
     // 5. Submission — push the packet to the payer portal
@@ -75,6 +89,7 @@ export async function runPipeline(req: AuthRequest): Promise<AuthRequest> {
     if (!submission.success || !submission.data) return fail(req, submission.error ?? "Submission failed");
     req.submission = submission.data;
 
+    await pace();
     await setStatus(req, "submitted");
     console.log(`[pipeline] ${req.id} → submitted`);
     return req;

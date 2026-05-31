@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
     if (!rawNote.trim()) {
       return NextResponse.json({ error: "rawNote is required" }, { status: 400, headers: corsHeaders(origin) });
     }
+    const uploadedBy: string =
+      typeof body.uploadedBy === "string" && body.uploadedBy.trim() ? body.uploadedBy.trim() : user.userId;
 
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
       status: "intake",
       createdAt: now,
       updatedAt: now,
-      uploadedBy: user.userId,
+      uploadedBy,
       noteKey,
       rawNote,
       auditTrail: [],

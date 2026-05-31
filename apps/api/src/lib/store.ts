@@ -13,11 +13,12 @@ export type StoreEvent = { type: "upsert"; request: AuthRequest };
 type ClearAuthStore = {
   memory: Map<string, AuthRequest>;
   listeners: Set<Listener>;
+  hydrated: boolean;
 };
 const globalRef = globalThis as unknown as { __clearauthStore?: ClearAuthStore };
 const store: ClearAuthStore =
   globalRef.__clearauthStore ??
-  (globalRef.__clearauthStore = { memory: new Map(), listeners: new Set() });
+  (globalRef.__clearauthStore = { memory: new Map(), listeners: new Set(), hydrated: false });
 
 const memory = store.memory;
 
@@ -93,7 +94,44 @@ function requestToRow(req: AuthRequest): AuthRequestRow {
   };
 }
 
+// One-time hydration: warm the in-memory mirror from Supabase so SSE snapshots
+// and the offline fallback are correct after a server restart. Idempotent and
+// fail-soft — a missing/erroring Supabase just leaves the Map as-is. The flag
+// lives on the globalThis-pinned store so it survives Next's per-bundle reeval.
+let hydrating: Promise<void> | null = null;
+export async function ensureHydrated(): Promise<void> {
+  if (store.hydrated) return;
+  if (hydrating) return hydrating;
+  const sb = createServerSupabase();
+  if (!sb) {
+    store.hydrated = true; // nothing to hydrate from — in-memory only
+    return;
+  }
+  hydrating = (async () => {
+    try {
+      const { data, error } = await sb.from(TABLE).select("*");
+      if (error) {
+        console.error("[store] hydrate error:", error.message);
+        return; // leave hydrated=false so a later read retries
+      }
+      for (const row of (data ?? []) as AuthRequestRow[]) {
+        const req = rowToRequest(row);
+        // Don't clobber a fresher in-memory copy written since startup.
+        if (!memory.has(req.id)) memory.set(req.id, req);
+      }
+      store.hydrated = true;
+      console.log(`[store] hydrated ${data?.length ?? 0} request(s) from Supabase`);
+    } catch (err) {
+      console.error("[store] hydrate failed:", err instanceof Error ? err.message : err);
+    } finally {
+      hydrating = null;
+    }
+  })();
+  return hydrating;
+}
+
 export async function getAuthRequest(id: string): Promise<AuthRequest | undefined> {
+  await ensureHydrated();
   const sb = createServerSupabase();
   if (sb) {
     const { data, error } = await sb.from(TABLE).select("*").eq("id", id).maybeSingle();
@@ -108,6 +146,7 @@ export async function getAuthRequest(id: string): Promise<AuthRequest | undefine
 }
 
 export async function listAuthRequests(): Promise<AuthRequest[]> {
+  await ensureHydrated();
   const sb = createServerSupabase();
   if (sb) {
     const { data, error } = await sb.from(TABLE).select("*").order("updated_at", { ascending: false });

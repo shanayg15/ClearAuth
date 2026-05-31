@@ -1,0 +1,16 @@
+Patient: Robert Ellison
+DOB: 03/14/1963
+Sex: Male
+Insurer: UnitedHealthcare
+Member ID: UHC884201773
+
+62 yo male presents with chronic lower back pain radiating into the left lower
+extremity, ongoing for 7 months. Failed 8 weeks of physical therapy, a full course
+of NSAIDs, and one epidural steroid injection without meaningful relief. Exam shows
+progressive left L5 paresthesia and mild foot drop.
+
+Diagnosis: Lumbar radiculopathy with suspected disc herniation (ICD-10 M54.16)
+Requested treatment: MRI lumbar spine without contrast (CPT 72148)
+Justification: Persistent radicular symptoms with a new neurologic deficit despite
+documented conservative management. Advanced imaging is medically necessary to confirm
+the herniation and guide surgical planning.
