@@ -1,0 +1,74 @@
+# Render Blueprint for ClearAuth (OPTIONAL deploy — localhost is the supported
+# demo path). Three Next.js web services from one npm-workspaces monorepo. Each
+# builds from the repo root so the @clearauth/* workspace packages link, and
+# starts bound to Render's injected $PORT.
+#
+# NEXT_PUBLIC_* values are inlined at BUILD time, so cross-service URLs must be
+# set before/at build. After the first deploy, fill the `sync: false` URLs:
+#   - dashboard + payer-portal: NEXT_PUBLIC_API_URL = https://<clearauth-api>.onrender.com
+#   - api: RTRVR_PORTAL_URL  = https://<clearauth-payer-portal>.onrender.com/submit
+#   - api: DASHBOARD_APP_URL = https://<clearauth-dashboard>.onrender.com   (CORS)
+#   - api: PAYER_PORTAL_URL  = https://<clearauth-payer-portal>.onrender.com (CORS)
+# Everything else fails soft, so the apps deploy and run with no secrets set.
+
+services:
+  - type: web
+    name: clearauth-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npm run build --workspace @clearauth/api
+    startCommand: cd apps/api && npx next start -p $PORT
+    healthCheckPath: /api/auth-requests
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: APIFY_API_TOKEN
+        sync: false
+      - key: TIGRIS_STORAGE_ACCESS_KEY_ID
+        sync: false
+      - key: TIGRIS_STORAGE_SECRET_ACCESS_KEY
+        sync: false
+      - key: TIGRIS_STORAGE_BUCKET
+        value: clearauth
+      - key: TIGRIS_ENDPOINT
+        value: https://t3.storage.dev
+      - key: RTRVR_API_KEY
+        sync: false
+      - key: RTRVR_PORTAL_URL
+        sync: false
+      - key: OPSERA_MCP_URL
+        value: https://mcp.opsera.io/mcp
+      - key: OPSERA_API_TOKEN
+        sync: false
+      - key: DASHBOARD_APP_URL
+        sync: false
+      - key: PAYER_PORTAL_URL
+        sync: false
+
+  - type: web
+    name: clearauth-dashboard
+    runtime: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npm run build --workspace @clearauth/dashboard
+    startCommand: cd apps/dashboard && npx next start -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+
+  - type: web
+    name: clearauth-payer-portal
+    runtime: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npm run build --workspace @clearauth/payer-portal
+    startCommand: cd apps/payer-portal && npx next start -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

@@ -1,3 +1,72 @@
 @import "tailwindcss";
 
-body { font-family: system-ui, -apple-system, sans-serif; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Status pill "pop" — retriggered on every status change (keyed remount). */
+@keyframes statusPop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Soft glow ring around the live (in-progress) status pill. */
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+}
+
+/* Steady green glow once approved. */
+@keyframes approvedGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(16, 185, 129, 0);
+  }
+}
+
+/* Indeterminate shimmer on the progress track while a step is active. */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-status-pop {
+  animation: statusPop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.animate-pulse-glow {
+  animation: pulseGlow 1.8s ease-in-out infinite;
+}
+.animate-approved-glow {
+  animation: approvedGlow 1.8s ease-in-out infinite;
+}
+.shimmer-bar {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
