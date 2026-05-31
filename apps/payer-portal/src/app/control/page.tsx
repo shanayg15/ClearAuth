@@ -29,11 +29,14 @@ export default function ControlPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
+  const TERMINAL = new Set(["Approved", "Denied"]);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/submissions", { cache: "no-store" });
       const data = await res.json();
-      setSubs(Array.isArray(data.submissions) ? data.submissions : []);
+      const all = Array.isArray(data.submissions) ? data.submissions : [];
+      setSubs(all.filter((s: Submission) => !TERMINAL.has(s.status)));
     } catch (err) {
       console.error("[control] load failed", err);
     }
@@ -69,7 +72,12 @@ export default function ControlPage() {
       } else {
         setToast(`⚠ ClearAuth responded ${res.status}: ${data.error ?? "error"} — portal updated locally`);
       }
-      await load();
+      // Remove the card immediately for terminal decisions; under_review keeps it visible.
+      if (decision === "approved" || decision === "denied") {
+        setSubs((prev) => prev.filter((s) => s.confirmationId !== confirmationId));
+      } else {
+        await load();
+      }
     } catch (err) {
       setToast(`⚠ ${err instanceof Error ? err.message : "Request failed"}`);
     } finally {
