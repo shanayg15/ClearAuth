@@ -43,6 +43,14 @@ export async function processAuthRequest(id: string): Promise<AuthRequest> {
   return data.request;
 }
 
+export async function refreshCompliance(id: string): Promise<AuthRequest> {
+  const data = await apiFetch<{ request: AuthRequest }>("/api/compliance", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+  return data.request;
+}
+
 export type AuthRequestStreamHandlers = {
   onSnapshot: (requests: AuthRequest[]) => void;
   onUpsert: (request: AuthRequest) => void;
