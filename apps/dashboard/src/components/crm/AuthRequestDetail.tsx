@@ -6,6 +6,10 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AgentTimeline } from "@/components/ui/AgentTimeline";
 import { StatusHero } from "@/components/ui/StatusHero";
 import { PayerIntelCard } from "@/components/crm/PayerIntelCard";
+import {
+  Play, RotateCcw, Send, RefreshCw, FileText, LayoutGrid, History,
+  Activity, CheckSquare, Square, Shield, FileOutput, Check, AlertTriangle, X,
+} from "lucide-react";
 
 interface AuthRequestDetailProps {
   request: AuthRequest;
@@ -17,22 +21,41 @@ interface AuthRequestDetailProps {
   refreshingCompliance?: boolean;
 }
 
-function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Sec({
+  icon,
+  title,
+  action,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="bg-gray-50 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">{title}</h3>
+    <div className="sec">
+      <div className="sec-hdr">
+        <span className="sec-title" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          {icon}
+          {title}
+        </span>
         {action}
       </div>
-      {children}
+      <div className="sec-body">{children}</div>
     </div>
   );
 }
 
-const COMPLIANCE_ICON: Record<string, string> = {
-  pass: "✅",
-  warn: "⚠️",
-  fail: "❌",
+const COMPLIANCE_ICON: Record<string, React.ReactNode> = {
+  pass: <Check size={12} strokeWidth={2.5} style={{ color: "var(--green)" }} />,
+  warn: <AlertTriangle size={12} strokeWidth={2} style={{ color: "var(--amber)" }} />,
+  fail: <X size={12} strokeWidth={2.5} style={{ color: "var(--red)" }} />,
+};
+
+const METHOD_LABEL: Record<NonNullable<AuthRequest["submission"]>["method"], string> = {
+  rtrvr_api:   "Rtrvr.ai cloud",
+  rtrvr_trick: "Rtrvr.ai trick",
+  fallback:    "Direct",
 };
 
 export function AuthRequestDetail({
@@ -48,245 +71,239 @@ export function AuthRequestDetail({
   const { extraction, criteria, compliance, submission } = request;
   const patient = request.patient ?? extraction?.patient;
   const canRun = request.status === "intake" || request.status === "error";
+  const isDenied = request.status === "denied";
   const awaitingApproval = request.status === "ready_to_submit";
 
   return (
-    <div className="space-y-5">
+    <div className="detail">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="dh">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{patient?.name ?? "Auth Request"}</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <div className="dh-name">{patient?.name ?? "Auth Request"}</div>
+          <div className="dh-sub">
             {patient?.insurer ?? "Unknown payer"}
-            {patient?.memberId ? ` · Member ${patient.memberId}` : ""}
+            {patient?.memberId ? ` · ${patient.memberId}` : ""}
             {patient?.age ? ` · ${patient.age}yo` : ""}
-          </p>
+          </div>
         </div>
         <StatusBadge status={request.status} />
       </div>
 
-      {/* Status hero — the live money-shot (animated pill + pipeline stepper) */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <StatusHero status={request.status} />
-      </div>
+      <StatusHero status={request.status} />
 
-      {/* Action */}
-      {canRun ? (
-        <button
-          onClick={() => onProcess(request.id)}
-          disabled={isProcessing}
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
-        >
-          {isProcessing ? "Starting…" : request.status === "error" ? "Retry Agent Pipeline" : "Run Agent Pipeline"}
-        </button>
-      ) : awaitingApproval ? (
-        <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 animate-status-pop">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl leading-none" aria-hidden>
-              🧑‍⚕️
-            </span>
-            <div className="flex-1">
-              <p className="font-bold text-emerald-900">Ready for your approval</p>
-              <p className="mt-0.5 text-sm text-emerald-700">
-                The AI agents read the note, checked {patient?.insurer ?? "payer"} coverage
-                {criteria
-                  ? ` (${criteria.requiredCriteria.filter((c) => c.met).length}/${criteria.requiredCriteria.length} criteria met)`
-                  : ""}
-                , filled the prior-auth form{compliance ? ", and passed compliance" : ""}. Give it a
-                quick skim, then submit to the payer.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => onSubmit?.(request.id)}
-                  disabled={isSubmitting}
-                  className="rounded-lg bg-emerald-600 px-4 py-2.5 font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Submitting…" : `Approve & Submit to ${patient?.insurer ?? "Payer"}`}
-                </button>
-                <button
-                  onClick={() => setTab("packet")}
-                  className="rounded-lg border border-emerald-300 px-4 py-2.5 font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
-                >
-                  Review packet
-                </button>
-              </div>
-            </div>
+      {/* Actions */}
+      {canRun && (
+        <div className="act-run">
+          <button onClick={() => onProcess(request.id)} disabled={isProcessing} className="btn btn-solid btn-wide">
+            {isProcessing
+              ? <><RotateCcw size={13} strokeWidth={2} /> Starting…</>
+              : request.status === "error"
+              ? <><RotateCcw size={13} strokeWidth={2} /> Retry Pipeline</>
+              : <><Play size={13} strokeWidth={2} /> Run Pipeline</>}
+          </button>
+        </div>
+      )}
+
+      {awaitingApproval && (
+        <div className="act-approve">
+          <div className="act-approve-title">Ready for approval</div>
+          <div className="act-approve-body">
+            {criteria
+              ? `${criteria.requiredCriteria.filter((c) => c.met).length}/${criteria.requiredCriteria.length} criteria met`
+              : "Awaiting criteria"}
+            {compliance ? " · compliance passed" : ""}
+          </div>
+          <div className="act-approve-btns">
+            <button onClick={() => onSubmit?.(request.id)} disabled={isSubmitting} className="btn btn-solid">
+              {isSubmitting
+                ? <><RotateCcw size={13} strokeWidth={2} /> Submitting…</>
+                : <><Send size={13} strokeWidth={2} /> Submit to {patient?.insurer ?? "Payer"}</>}
+            </button>
+            <button onClick={() => setTab("packet")} className="btn">
+              <FileText size={13} strokeWidth={2} /> Review packet
+            </button>
           </div>
         </div>
-      ) : submission ? (
-        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
-          <p className="text-green-800 font-bold">Submitted to {patient?.insurer ?? "payer"}</p>
-          <p className="text-sm text-green-600 mt-1">
-            {submission.confirmationId ? `Confirmation ${submission.confirmationId}` : "Awaiting confirmation"} · via{" "}
-            {METHOD_LABEL[submission.method]}
-          </p>
-          <p className="text-xs text-green-500 mt-1">{new Date(submission.submittedAt).toLocaleString()}</p>
+      )}
+
+      {isDenied && (
+        <div className="act-denied">
+          <div className="act-denied-title">
+            <X size={13} strokeWidth={2.5} />
+            Denied by {patient?.insurer ?? "payer"}
+          </div>
+          <div className="act-denied-body">
+            Revise the clinical documentation and regenerate the authorization packet for resubmission.
+          </div>
+          <button
+            onClick={() => onProcess(request.id)}
+            disabled={isProcessing}
+            className="btn"
+          >
+            {isProcessing
+              ? <><RotateCcw size={13} strokeWidth={2} /> Regenerating…</>
+              : <><RotateCcw size={13} strokeWidth={2} /> Redo — Regenerate Auth</>}
+          </button>
         </div>
-      ) : null}
+      )}
+
+      {submission && !awaitingApproval && (
+        <div className="act-submitted">
+          <div className="act-submitted-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Send size={13} strokeWidth={2} />
+            Submitted to {patient?.insurer ?? "payer"}
+          </div>
+          <div className="act-submitted-sub">
+            {submission.confirmationId ? `# ${submission.confirmationId}` : "Awaiting confirmation"}
+            {" · "}{METHOD_LABEL[submission.method]}
+          </div>
+          <div className="act-submitted-time">{new Date(submission.submittedAt).toLocaleString()}</div>
+        </div>
+      )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-6">
-          {(["overview", "packet", "audit"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`pb-2 text-sm font-medium border-b-2 transition-colors capitalize ${
-                tab === t ? "border-emerald-500 text-emerald-600" : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t}
-              {t === "audit" && (
-                <span className="ml-1 text-xs bg-gray-100 rounded-full px-2 py-0.5">{request.auditTrail.length}</span>
+      <div className="tabs">
+        {([
+          { key: "overview", icon: <LayoutGrid size={12} strokeWidth={2} />, label: "Overview" },
+          { key: "packet",   icon: <FileText size={12} strokeWidth={2} />,   label: "Packet"   },
+          { key: "audit",    icon: <History size={12} strokeWidth={2} />,    label: "Audit"    },
+        ] as const).map(({ key, icon, label }) => (
+          <button key={key} onClick={() => setTab(key)} className={`tab${tab === key ? " active" : ""}`}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {icon}
+              {label}
+              {key === "audit" && (
+                <span className="tab-count">{request.auditTrail.length}</span>
               )}
-            </button>
-          ))}
-        </nav>
+            </span>
+          </button>
+        ))}
       </div>
 
+      {/* Overview */}
       {tab === "overview" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
+        <div className="grid-2">
+          <div className="col-2">
             <PayerIntelCard insurer={patient?.insurer} treatment={extraction?.requestedTreatment} />
           </div>
-          <Section title="Extraction">
-            {extraction ? (
-              <div className="space-y-1 text-sm">
-                <p className="font-medium text-gray-900">{extraction.diagnosis}</p>
-                <p className="text-xs text-gray-500">
-                  ICD-10: {extraction.icd10}
-                  {extraction.cptCode ? ` · CPT ${extraction.cptCode}` : ""}
-                </p>
-                <p className="text-gray-700 pt-1">{extraction.requestedTreatment}</p>
-                <p className="text-xs text-gray-500 pt-1">{extraction.clinicalJustification}</p>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">Pending…</p>
-            )}
-          </Section>
 
-          <Section title="Coverage Criteria">
+          <Sec icon={<Activity size={11} strokeWidth={2} />} title="Extraction">
+            {extraction ? (
+              <>
+                <div className="data-lbl">Diagnosis</div>
+                <div className="data-val">{extraction.diagnosis}</div>
+                <div className="data-lbl">Codes</div>
+                <div className="data-val">
+                  ICD-10 {extraction.icd10}{extraction.cptCode ? ` · CPT ${extraction.cptCode}` : ""}
+                </div>
+                <div className="data-lbl">Treatment</div>
+                <div className="data-plain">{extraction.requestedTreatment}</div>
+                <div className="data-small">{extraction.clinicalJustification}</div>
+              </>
+            ) : <span className="pending">Pending…</span>}
+          </Sec>
+
+          <Sec icon={<CheckSquare size={11} strokeWidth={2} />} title="Criteria">
             {criteria ? (
-              <div className="space-y-1.5 text-sm">
-                <p className="text-xs text-gray-500">
-                  {criteria.coverageSource ?? "Payer policy"} ·{" "}
-                  <span className={criteria.allMet ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
-                    {criteria.requiredCriteria.filter((c) => c.met).length}/{criteria.requiredCriteria.length} met
-                  </span>
-                </p>
+              <>
+                <div className="crit-score">
+                  {criteria.requiredCriteria.filter((c) => c.met).length}/{criteria.requiredCriteria.length} met
+                  {criteria.coverageSource ? ` · ${criteria.coverageSource}` : ""}
+                </div>
                 {criteria.requiredCriteria.map((c, i) => (
-                  <div key={i} className="flex gap-2">
-                    <span>{c.met ? "✅" : "⬜️"}</span>
-                    <div>
-                      <p className="text-gray-800">{c.label}</p>
-                      {c.evidence && <p className="text-xs text-gray-400">{c.evidence}</p>}
+                  <div className="crit-item" key={i}>
+                    <span className="crit-mark">
+                      {c.met
+                        ? <CheckSquare size={12} strokeWidth={2} style={{ color: "var(--green)" }} />
+                        : <Square size={12} strokeWidth={2} style={{ color: "var(--gray)" }} />}
+                    </span>
+                    <div className="crit-text">
+                      {c.label}
+                      {c.evidence && <div className="crit-evidence">{c.evidence}</div>}
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">Pending…</p>
-            )}
-          </Section>
+              </>
+            ) : <span className="pending">Pending…</span>}
+          </Sec>
 
-          <Section
+          <Sec
+            icon={<Shield size={11} strokeWidth={2} />}
             title="Compliance"
             action={
               onRefreshCompliance && (
                 <button
                   onClick={() => onRefreshCompliance(request.id)}
                   disabled={refreshingCompliance}
-                  className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
+                  className="btn"
+                  style={{ padding: "2px 8px", fontSize: "9px" }}
+                  title="Re-run compliance check"
                 >
-                  {refreshingCompliance ? "Re-running…" : "↻ Re-run"}
+                  <RefreshCw size={10} strokeWidth={2} />
+                  {refreshingCompliance ? "Running…" : "Re-run"}
                 </button>
               )
             }
           >
             {compliance ? (
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
-                      compliance.overall === "pass"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : compliance.overall === "warn"
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {compliance.overall}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-gray-400">
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        compliance.source === "opsera" ? "bg-emerald-500" : "bg-gray-300"
-                      }`}
-                    />
-                    {compliance.source === "opsera" ? "Audited live by Opsera" : "Audited by Opsera"}
+              <>
+                <div className="comp-hdr">
+                  <span className={`comp-overall comp-${compliance.overall}`}>{compliance.overall}</span>
+                  <span className="comp-source">
+                    {compliance.source === "opsera" ? "Opsera (live)" : "Opsera"}
                   </span>
                 </div>
                 {compliance.checks.map((c, i) => (
-                  <div key={i} className="flex gap-2">
-                    <span>{COMPLIANCE_ICON[c.status]}</span>
+                  <div className="comp-item" key={i}>
+                    <span className="comp-icon">{COMPLIANCE_ICON[c.status]}</span>
                     <div>
-                      <p className="text-gray-800">{c.label}</p>
-                      {c.detail && <p className="text-xs text-gray-400">{c.detail}</p>}
+                      {c.label}
+                      {c.detail && <div className="comp-detail">{c.detail}</div>}
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">Pending…</p>
-            )}
-          </Section>
+              </>
+            ) : <span className="pending">Pending…</span>}
+          </Sec>
 
-          <Section title="Submission">
+          <Sec icon={<FileOutput size={11} strokeWidth={2} />} title="Submission">
             {submission ? (
-              <div className="space-y-1 text-sm">
-                <p className="text-gray-800">
-                  Method: <span className="font-medium">{METHOD_LABEL[submission.method]}</span>
-                </p>
-                {submission.confirmationId && <p className="text-gray-800">Confirmation: {submission.confirmationId}</p>}
-                <p className="text-xs text-gray-500 break-all">{submission.portalUrl}</p>
-                <p className="text-xs text-gray-400">{new Date(submission.submittedAt).toLocaleString()}</p>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">Pending…</p>
-            )}
-          </Section>
+              <>
+                <div className="data-lbl">Method</div>
+                <div className="data-val">{METHOD_LABEL[submission.method]}</div>
+                {submission.confirmationId && (
+                  <>
+                    <div className="data-lbl">Confirmation</div>
+                    <div className="data-val">{submission.confirmationId}</div>
+                  </>
+                )}
+                <div className="data-small" style={{ wordBreak: "break-all" }}>{submission.portalUrl}</div>
+                <div className="data-small" style={{ marginTop: 4 }}>{new Date(submission.submittedAt).toLocaleString()}</div>
+              </>
+            ) : <span className="pending">Pending…</span>}
+          </Sec>
         </div>
       )}
 
       {tab === "packet" && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          {request.formFill ? (
-            <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
-              {request.formFill.packetMarkdown}
-            </pre>
-          ) : (
-            <p className="text-sm text-gray-400">The PA packet will appear here once the form-fill agent runs.</p>
-          )}
+        <div className="packet">
+          {request.formFill
+            ? request.formFill.packetMarkdown
+            : <span className="packet-empty">PA packet will appear after the form-fill agent runs.</span>}
         </div>
       )}
 
-      {tab === "audit" &&
-        (request.auditTrail.length > 0 ? (
-          <AgentTimeline entries={request.auditTrail} />
-        ) : (
-          <p className="text-sm text-gray-400">No audit entries yet.</p>
-        ))}
+      {tab === "audit" && (
+        request.auditTrail.length > 0
+          ? <AgentTimeline entries={request.auditTrail} />
+          : <span className="pending">No audit entries yet.</span>
+      )}
 
-      {/* Raw note */}
-      <Section title="Raw Clinical Note">
-        <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">{request.rawNote}</pre>
-      </Section>
+      <div style={{ marginTop: 16 }}>
+        <Sec icon={<FileText size={11} strokeWidth={2} />} title="Note">
+          <pre className="raw-note-text">{request.rawNote}</pre>
+        </Sec>
+      </div>
     </div>
   );
 }
-
-const METHOD_LABEL: Record<NonNullable<AuthRequest["submission"]>["method"], string> = {
-  rtrvr_api: "Rtrvr.ai cloud agent",
-  rtrvr_trick: "Rtrvr.ai recorded Trick",
-  fallback: "Direct submission",
-};
