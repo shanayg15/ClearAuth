@@ -10,6 +10,8 @@ interface AuthRequestDetailProps {
   request: AuthRequest;
   onProcess: (id: string) => void;
   isProcessing: boolean;
+  onSubmit?: (id: string) => void;
+  isSubmitting?: boolean;
   onRefreshCompliance?: (id: string) => void;
   refreshingCompliance?: boolean;
 }
@@ -36,6 +38,8 @@ export function AuthRequestDetail({
   request,
   onProcess,
   isProcessing,
+  onSubmit,
+  isSubmitting,
   onRefreshCompliance,
   refreshingCompliance,
 }: AuthRequestDetailProps) {
@@ -43,6 +47,7 @@ export function AuthRequestDetail({
   const { extraction, criteria, compliance, submission } = request;
   const patient = request.patient ?? extraction?.patient;
   const canRun = request.status === "intake" || request.status === "error";
+  const awaitingApproval = request.status === "ready_to_submit";
 
   return (
     <div className="space-y-5">
@@ -73,6 +78,40 @@ export function AuthRequestDetail({
         >
           {isProcessing ? "Starting…" : request.status === "error" ? "Retry Agent Pipeline" : "Run Agent Pipeline"}
         </button>
+      ) : awaitingApproval ? (
+        <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 animate-status-pop">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl leading-none" aria-hidden>
+              🧑‍⚕️
+            </span>
+            <div className="flex-1">
+              <p className="font-bold text-emerald-900">Ready for your approval</p>
+              <p className="mt-0.5 text-sm text-emerald-700">
+                The AI agents read the note, checked {patient?.insurer ?? "payer"} coverage
+                {criteria
+                  ? ` (${criteria.requiredCriteria.filter((c) => c.met).length}/${criteria.requiredCriteria.length} criteria met)`
+                  : ""}
+                , filled the prior-auth form{compliance ? ", and passed compliance" : ""}. Give it a
+                quick skim, then submit to the payer.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => onSubmit?.(request.id)}
+                  disabled={isSubmitting}
+                  className="rounded-lg bg-emerald-600 px-4 py-2.5 font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Submitting…" : `Approve & Submit to ${patient?.insurer ?? "Payer"}`}
+                </button>
+                <button
+                  onClick={() => setTab("packet")}
+                  className="rounded-lg border border-emerald-300 px-4 py-2.5 font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                >
+                  Review packet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : submission ? (
         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
           <p className="text-green-800 font-bold">Submitted to {patient?.insurer ?? "payer"}</p>

@@ -43,6 +43,16 @@ export async function processAuthRequest(id: string): Promise<AuthRequest> {
   return data.request;
 }
 
+// Doctor approval gate: the pipeline stops at "ready_to_submit"; this fires the
+// submission chain (submitting → submitted) only once the clinician signs off.
+export async function submitAuthRequest(id: string): Promise<AuthRequest> {
+  const data = await apiFetch<{ request: AuthRequest }>("/api/agents/submit", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+  return data.request;
+}
+
 export async function refreshCompliance(id: string): Promise<AuthRequest> {
   const data = await apiFetch<{ request: AuthRequest }>("/api/compliance", {
     method: "POST",

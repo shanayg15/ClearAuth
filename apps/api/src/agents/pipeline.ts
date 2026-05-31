@@ -5,11 +5,14 @@ import { runExtractionChain } from "./chains/extraction-chain";
 import { runCriteriaChain } from "./chains/criteria-chain";
 import { runFormFillChain } from "./chains/formfill-chain";
 import { runComplianceChain } from "./chains/compliance-chain";
-import { runSubmissionChain } from "./chains/submission-chain";
 
-// The agent pipeline: 5 chains run in sequence, persisting + broadcasting after
-// every transition so connected dashboards animate live. Each step is wrapped so
-// a chain failure flips status to "error" and stops — runPipeline never throws.
+// The agent pipeline: the 4 autonomous chains (extraction → criteria → form-fill →
+// compliance) run in sequence, persisting + broadcasting after every transition so
+// connected dashboards animate live. The pipeline then STOPS at "ready_to_submit" —
+// a deliberate human-in-the-loop gate. The doctor reviews the completed packet in
+// the CRM and approves; that approval triggers the 5th chain (submission) via
+// POST /api/agents/submit. Each step is wrapped so a chain failure flips status to
+// "error" and stops — runPipeline never throws.
 
 // Demo pacing: with DEMO_PACING=1, insert a short beat before each transition so
 // the live status animation is watchable. Off by default (zero delay in tests/CI).
@@ -78,20 +81,14 @@ export async function runPipeline(req: AuthRequest): Promise<AuthRequest> {
     if (!compliance.success || !compliance.data) return fail(req, compliance.error ?? "Compliance review failed");
     req.compliance = compliance.data;
 
-    // Gate between review and submission
+    // Human-in-the-loop gate. The autonomous agents are done; the pipeline stops
+    // here and waits. The doctor reviews the completed packet in the CRM and clicks
+    // "Approve & Submit", which POSTs to /api/agents/submit to run the submission
+    // chain (submitting → submitted). Nothing leaves for the payer without that
+    // explicit human approval — the AI proposes, the clinician signs off.
     await pace();
     await setStatus(req, "ready_to_submit");
-
-    // 5. Submission — push the packet to the payer portal
-    const submission = await runStep(req, "submitting", () =>
-      runSubmissionChain(formFillData, extractionData.patient)
-    );
-    if (!submission.success || !submission.data) return fail(req, submission.error ?? "Submission failed");
-    req.submission = submission.data;
-
-    await pace();
-    await setStatus(req, "submitted");
-    console.log(`[pipeline] ${req.id} → submitted`);
+    console.log(`[pipeline] ${req.id} → ready_to_submit (awaiting doctor approval)`);
     return req;
   } catch (err) {
     return fail(req, err instanceof Error ? err.message : String(err));
