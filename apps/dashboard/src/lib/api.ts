@@ -1,4 +1,5 @@
 import type { AuthRequest } from "@/types";
+import type { PayerIntel } from "@/lib/payer-intel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const DOCTOR_TOKEN = "demo_doctor";
@@ -72,6 +73,17 @@ export async function getOpseraReport(id: string): Promise<OpseraReport> {
     body: JSON.stringify({ id }),
   });
   return data.report;
+}
+
+// Payer Intelligence (Apify) — hits the dashboard's OWN server route (same
+// origin), which runs the scrape server-side so the Apify token never reaches the
+// browser. Note: this is NOT the API_URL brain — it's a dashboard route handler.
+export async function getPayerIntel(payer: string, treatment: string): Promise<PayerIntel> {
+  const res = await fetch(
+    `/api/payer-intel?payer=${encodeURIComponent(payer)}&treatment=${encodeURIComponent(treatment)}`
+  );
+  if (!res.ok) return { payer, source: "fallback" };
+  return res.json();
 }
 
 export type AuthRequestStreamHandlers = {

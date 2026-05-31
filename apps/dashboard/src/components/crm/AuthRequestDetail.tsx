@@ -5,6 +5,7 @@ import { AuthRequest } from "@/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AgentTimeline } from "@/components/ui/AgentTimeline";
 import { StatusHero } from "@/components/ui/StatusHero";
+import { PayerIntelCard } from "@/components/crm/PayerIntelCard";
 
 interface AuthRequestDetailProps {
   request: AuthRequest;
@@ -145,6 +146,9 @@ export function AuthRequestDetail({
 
       {tab === "overview" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <PayerIntelCard insurer={patient?.insurer} treatment={extraction?.requestedTreatment} />
+          </div>
           <Section title="Extraction">
             {extraction ? (
               <div className="space-y-1 text-sm">

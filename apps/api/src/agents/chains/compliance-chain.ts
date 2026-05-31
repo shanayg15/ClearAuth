@@ -1,6 +1,8 @@
 import { AgentResult, ComplianceCheck, ComplianceResult, AuthRequest } from "@clearauth/types";
 import { createAuditEntry, verifyAuditEntry } from "@/lib/audit";
 import { runComplianceAudit } from "@/lib/opsera";
+import { lookupPaRegulation } from "@/lib/apify-regulatory";
+import { validateCoding } from "@/lib/apify-coding";
 
 // Compliance agent (Pranav-scope file; built by Sahiel per PROMPT 3).
 //
@@ -114,9 +116,19 @@ export async function runComplianceChain(
   console.log(`[${ROLE}] running for ${req.id}`);
   try {
     const derived = requestDerivedChecks(req);
-    const { checks: opseraChecks, source } = await runComplianceAudit(req);
+    const payer = req.patient?.insurer ?? req.extraction?.payer ?? "the payer";
 
-    const checks = [...derived, ...opseraChecks];
+    // Apify-backed checks (PA turnaround SLA + ICD-10/CPT validation) and the
+    // Opsera audit run in parallel so the compliance step stays fast even with
+    // three external lookups. Each is independently fail-soft.
+    const [regCheck, codingCheck, audit] = await Promise.all([
+      lookupPaRegulation(payer),
+      validateCoding(req),
+      runComplianceAudit(req),
+    ]);
+    const source = audit.source;
+
+    const checks = [...derived, regCheck, codingCheck, ...audit.checks];
     const overall = computeOverall(checks);
     const data: ComplianceResult = { checks, overall, source };
 

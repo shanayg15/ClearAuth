@@ -60,6 +60,10 @@ services:
         value: "22"
       - key: NEXT_PUBLIC_API_URL
         sync: false
+      # Apify token for the dashboard's server-side Payer Intelligence route
+      # (/api/payer-intel). Server-only — never NEXT_PUBLIC. Fails soft if unset.
+      - key: APIFY_API_TOKEN
+        sync: false
 
   - type: web
     name: clearauth-payer-portal
