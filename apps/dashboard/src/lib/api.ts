@@ -61,6 +61,19 @@ export async function refreshCompliance(id: string): Promise<AuthRequest> {
   return data.request;
 }
 
+export type OpseraReportSection = { agent: string; label: string; text: string };
+export type OpseraReport = { sections: OpseraReportSection[]; source: "opsera" | "fallback" };
+
+// Opsera narrative agents (Architecture Analyzer + Business Documents Generator)
+// → the investor-pitch / HIPAA-summary artifacts. Fail-soft on the server.
+export async function getOpseraReport(id: string): Promise<OpseraReport> {
+  const data = await apiFetch<{ report: OpseraReport }>("/api/opsera/report", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+  return data.report;
+}
+
 export type AuthRequestStreamHandlers = {
   onSnapshot: (requests: AuthRequest[]) => void;
   onUpsert: (request: AuthRequest) => void;
