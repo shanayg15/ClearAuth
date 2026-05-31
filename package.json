@@ -1,0 +1,21 @@
+{
+  "name": "clearauth",
+  "private": true,
+  "packageManager": "npm@11.12.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "dev:api": "turbo dev --filter=@clearauth/api",
+    "dev:dashboard": "turbo dev --filter=@clearauth/dashboard",
+    "test": "turbo test --filter=@clearauth/api"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.14"
+  }
+}
