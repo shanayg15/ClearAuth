@@ -145,12 +145,24 @@ async function viaCloudApi(
   const endpoint = `${RTRVR_API_BASE.replace(/\/$/, "")}/execute`;
   try {
     console.log(`[rtrvr] strategy A → POST ${endpoint}`);
+    const instruction = buildPrompt(portalUrl, fields);
+    // Rtrvr's /execute validates `input` (string, required). We also send the
+    // documented `urls` array + `prompt`/`url` aliases so the same body works
+    // across their /execute and /agent shapes. NOTE: the cloud agent runs in
+    // Rtrvr's browser cloud and cannot reach localhost — RTRVR_PORTAL_URL must be
+    // a publicly reachable URL (deploy or tunnel) for a real browser submission.
     const res = await fetchWithTimeout(
       endpoint,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ url: portalUrl, prompt: buildPrompt(portalUrl, fields) }),
+        body: JSON.stringify({
+          input: instruction,
+          prompt: instruction,
+          urls: [portalUrl],
+          url: portalUrl,
+          response: { verbosity: "final" },
+        }),
       },
       AGENT_TIMEOUT_MS
     );
