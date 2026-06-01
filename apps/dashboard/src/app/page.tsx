@@ -23,7 +23,12 @@ Diagnosis: Chronic lower back pain, failed 8 weeks of physical therapy and NSAID
 Requested treatment: MRI lumbar spine without contrast
 Justification: Persistent radicular symptoms despite conservative management.`;
 
-const SEED_ENABLED = (process.env.NEXT_PUBLIC_DEMO_SEED ?? "1") !== "0";
+// Auto-seed is OFF by default. It was injecting the "Jane Doe" SAMPLE_NOTE as a
+// request on every fresh load (and auto-selecting it), which hijacked live demos —
+// you'd see Jane Doe even when presenting a brand-new patient. Opt in explicitly
+// with NEXT_PUBLIC_DEMO_SEED=1 if you want a pre-populated request. The manual
+// "Sample Note" button (empty textarea → Create) still seeds on demand.
+const SEED_ENABLED = process.env.NEXT_PUBLIC_DEMO_SEED === "1";
 
 export default function Dashboard() {
   const { session } = useSession();
