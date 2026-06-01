@@ -1,5 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  // Turborepo task graph. "dev" is persistent + uncached; build/lint/type-check
+  // fan out across workspaces ("^" runs each dependency's task first, e.g. build
+  // @clearauth/types before the apps that import it). turbo.json is JSONC, so
+  // these // comments are fine here — but package.json is NOT (don't comment it).
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -21,5 +25,3 @@
     }
   }
 }
-
-//whyrureadingthis???

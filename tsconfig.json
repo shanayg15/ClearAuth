@@ -1,5 +1,8 @@
 
 {
+  // Base TS config shared by all workspaces (each app's tsconfig extends this).
+  // tsconfig is JSONC so // comments are supported here — unlike the strict-JSON
+  // package.json files, where a raw comment line breaks `npm install`.
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -33,6 +36,3 @@
   ],
   "exclude": ["node_modules"]
 }
-
-
-//Hi

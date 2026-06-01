@@ -1,9 +1,8 @@
 {
   "name": "@clearauth/types",
+  "//": "Shared TypeScript contract for every app — import from `@clearauth/types`. Source is index.ts directly (no build step). STRICT JSON: no // or # comment lines; leave notes as a \"//\" key like this.",
   "version": "0.1.0",
   "private": true,
   "main": "./index.ts",
   "types": "./index.ts"
 }
-
-//hello

@@ -1,5 +1,6 @@
 {
   "name": "clearauth",
+  "//": "Monorepo root: npm workspaces + Turborepo. Run `npm run dev` to start every app (api:3001, dashboard:3003, payer-portal:3009). NOTE: package.json is STRICT JSON — a raw // or # comment line breaks `npm install` for everyone. To leave a note, use a \"//\" KEY like this one (npm ignores it).",
   "private": true,
   "packageManager": "npm@11.12.1",
   "workspaces": [
@@ -19,4 +20,3 @@
     "turbo": "^2.9.14"
   }
 }
-#11
