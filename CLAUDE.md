@@ -108,3 +108,5 @@ See `packages/types/index.ts` for the authoritative definitions.
 ONE patient, ONE note, ONE payer, ONE successful approval. No login, no appeals flow,
 no multi-payer. The payer portal is OUR mock app — we control when it flips to approved.
 Record a Rtrvr "Trick" in the morning as a deterministic fallback for the live submission.
+
+Finished
